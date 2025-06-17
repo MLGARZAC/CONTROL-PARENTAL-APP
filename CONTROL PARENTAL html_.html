@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Hijos</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to start to prevent overflow */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #app-container {
+            background-color: #ffffff;
+            border-radius: 1rem; /* Rounded corners */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+            width: 100%;
+            max-width: 960px; /* Max width for desktop */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #tabs-container {
+            border-bottom: 2px solid #e2e8f0; /* Light gray border for tabs */
+            flex-wrap: wrap; /* Allow tabs to wrap on smaller screens */
+        }
+        .tab-button {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            font-weight: 600;
+            color: #64748b; /* Slate gray text */
+            border-bottom: 3px solid transparent; /* Highlight border */
+        }
+        .tab-button.active {
+            color: #3b82f6; /* Blue text for active tab */
+            border-color: #3b82f6; /* Blue underline for active tab */
+            background-color: #eff6ff; /* Light blue background for active tab */
+        }
+        .tab-button:hover:not(.active) {
+            background-color: #f8fafc; /* Lighter background on hover */
+            color: #1e293b; /* Darker text on hover */
+        }
+        .child-content {
+            display: none; /* Hidden by default */
+            padding: 2rem;
+        }
+        .child-content.active {
+            display: block; /* Shown when active */
+        }
+        input[type="text"], textarea {
+            padding: 0.75rem;
+            border: 1px solid #cbd5e1; /* Light gray border */
+            border-radius: 0.5rem; /* Rounded corners */
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            color: #334155; /* Darker text */
+        }
+        button {
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            text-align: center;
+        }
+        .btn-primary {
+            background-color: #3b82f6; /* Blue */
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb; /* Darker blue */
+        }
+        .btn-danger {
+            background-color: #ef4444; /* Red */
+            color: #ffffff;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626; /* Darker red */
+        }
+        .btn-secondary {
+            background-color: #e2e8f0; /* Light gray */
+            color: #475569; /* Slate gray */
+        }
+        .btn-secondary:hover {
+            background-color: #cbd5e1; /* Darker light gray */
+        }
+        .behavior-entry {
+            background-color: #f8fafc; /* Very light blue-gray */
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .behavior-date {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 0.25rem;
+        }
+        .behavior-item {
+            color: #475569;
+            margin-left: 1rem;
+            list-style-type: disc;
+        }
+        /* Message box styling */
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .message-box-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .message-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .message-box h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #1e293b;
+        }
+        .message-box p {
+            margin-bottom: 1.5rem;
+            color: #475569;
+        }
+        .message-box-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .message-box .btn {
+            flex: 1; /* Make buttons take equal width */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #app-container {
+                border-radius: 0.5rem;
+                padding: 0;
+            }
+            body {
+                padding: 10px;
+            }
+            .tab-button {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+            .child-content {
+                padding: 1.5rem;
+            }
+            .message-box {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <h1 class="text-3xl font-bold text-center text-gray-800 p-6 border-b border-gray-200">Gestor de Hijos</h1>
+
+        <div id="tabs-container" class="flex justify-start bg-gray-50">
+            <!-- Tabs will be dynamically inserted here by JavaScript -->
+        </div>
+
+        <div id="children-content-container" class="relative">
+            <!-- Child content will be dynamically inserted here by JavaScript -->
+        </div>
+
+        <!-- Add child button, shown only if less than 4 children -->
+        <div id="add-child-section" class="p-6 text-center border-t border-gray-200">
+            <button id="add-child-button" class="btn-primary">
+                Añadir Hijo
+            </button>
+        </div>
+    </div>
+
+    <!-- Message Box Overlay -->
+    <div id="message-box-overlay" class="message-box-overlay">
+        <div class="message-box">
+            <h3 id="message-box-title"></h3>
+            <p id="message-box-message"></p>
+            <div id="message-box-buttons" class="message-box-buttons">
+                <!-- Buttons will be added here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data model for children
+        let childrenData = []; // Stores objects like { id: 'child-1', name: 'Sofía', historial_comportamientos: {} }
+        let activeChildId = null; // ID of the currently active child
+        let nextChildId = 1; // Used to generate unique IDs for new children
+        const MAX_CHILDREN = 4; // Maximum number of children allowed
+
+        // DOM elements
+        const tabsContainer = document.getElementById('tabs-container');
+        const childrenContentContainer = document.getElementById('children-content-container');
+        const addChildButton = document.getElementById('add-child-button');
+        const addChildSection = document.getElementById('add-child-section');
+
+        // Message Box elements
+        const messageBoxOverlay = document.getElementById('message-box-overlay');
+        const messageBoxTitle = document.getElementById('message-box-title');
+        const messageBoxMessage = document.getElementById('message-box-message');
+        const messageBoxButtons = document.getElementById('message-box-buttons');
+
+        /**
+         * Displays a custom message box (instead of alert/confirm).
+         * @param {string} title - The title of the message box.
+         * @param {string} message - The message to display.
+         * @param {Array<{text: string, className: string, callback: function}>} buttons - Array of button configurations.
+         */
+        function showMessageBox(title, message, buttons) {
+            messageBoxTitle.textContent = title;
+            messageBoxMessage.textContent = message;
+            messageBoxButtons.innerHTML = ''; // Clear previous buttons
+
+            buttons.forEach(buttonConfig => {
+                const button = document.createElement('button');
+                button.textContent = buttonConfig.text;
+                button.className = `btn ${buttonConfig.className}`;
+                button.onclick = () => {
+                    hideMessageBox();
+                    if (buttonConfig.callback) {
+                        buttonConfig.callback();
+                    }
+                };
+                messageBoxButtons.appendChild(button);
+            });
+            messageBoxOverlay.classList.add('show');
+        }
+
+        /**
+         * Hides the custom message box.
+         */
+        function hideMessageBox() {
+            messageBoxOverlay.classList.remove('show');
+        }
+
+        /**
+         * Gets the current date in YYYY-MM-DD format.
+         * @returns {string} The current date string.
+         */
+        function getCurrentDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        /**
+         * Finds a child by their ID.
+         * @param {string} id - The ID of the child.
+         * @returns {object|null} The child object or null if not found.
+         */
+        function findChildById(id) {
+            return childrenData.find(child => child.id === id);
+        }
+
+        /**
+         * Renders (or re-renders) the entire application UI: tabs and content.
+         */
+        function renderApp() {
+            renderTabs();
+            renderChildContents();
+            updateAddChildButtonVisibility();
+        }
+
+        /**
+         * Renders the tabs for each child.
+         */
+        function renderTabs() {
+            tabsContainer.innerHTML = ''; // Clear existing tabs
+
+            if (childrenData.length === 0) {
+                // No children, no tabs to show
+                return;
+            }
+
+            childrenData.forEach(child => {
+                const button = document.createElement('button');
+                button.className = `tab-button ${child.id === activeChildId ? 'active' : ''}`;
+                button.dataset.childId = child.id;
+                button.textContent = child.name;
+                button.onclick = () => activateTab(child.id);
+                tabsContainer.appendChild(button);
+            });
+        }
+
+        /**
+         * Renders the content area for each child.
+         */
+        function renderChildContents() {
+            childrenContentContainer.innerHTML = ''; // Clear existing content
+
+            if (childrenData.length === 0) {
+                // Display a message if no children are added yet
+                const noChildrenMessage = document.createElement('div');
+                noChildrenMessage.className = 'text-center p-8 text-gray-500 text-lg';
+                noChildrenMessage.textContent = '¡Añade un hijo para empezar!';
+                childrenContentContainer.appendChild(noChildrenMessage);
+                return;
+            }
+
+            childrenData.forEach(child => {
+                const childDiv = document.createElement('div');
+                childDiv.className = `child-content ${child.id === activeChildId ? 'active' : ''}`;
+                childDiv.id = `child-content-${child.id}`;
+
+                // Child Name Section
+                childDiv.innerHTML += `
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-2">Nombre del Hijo:</h2>
+                        <input type="text" id="name-input-${child.id}" value="${child.name}" placeholder="Introduce el nombre"
+                               class="child-name-input" data-child-id="${child.id}">
+                        <button class="btn-secondary w-full" onclick="renameChild('${child.id}')">
+                            Cambiar Nombre
+                        </button>
+                    </div>
+                `;
+
+                // Add Behavior Section
+                childDiv.innerHTML += `
+                    <div class="mb-6 border-t border-gray-200 pt-6">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-2">Añadir Comportamiento:</h2>
+                        <textarea id="behavior-input-${child.id}" rows="3" placeholder="Describe el comportamiento de hoy..."
+                                  class="behavior-input" data-child-id="${child.id}"></textarea>
+                        <button class="btn-primary w-full" onclick="addBehavior('${child.id}')">
+                            Registrar Comportamiento
+                        </button>
+                    </div>
+                `;
+
+                // Behavior History Section
+                const historyDiv = document.createElement('div');
+                historyDiv.className = 'mb-6 border-t border-gray-200 pt-6';
+                historyDiv.innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 mb-4">Historial de Comportamientos:</h2>`;
+
+                const behaviors = child.historial_comportamientos;
+                const dates = Object.keys(behaviors).sort().reverse(); // Sort dates descending
+
+                if (dates.length === 0) {
+                    historyDiv.innerHTML += `<p class="text-gray-500">No hay comportamientos registrados para este hijo.</p>`;
+                } else {
+                    dates.forEach(date => {
+                        historyDiv.innerHTML += `
+                            <div class="behavior-entry">
+                                <div class="behavior-date">${date}</div>
+                                <ul>
+                                    ${behaviors[date].map(b => `<li class="behavior-item">${b}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    });
+                }
+                childDiv.appendChild(historyDiv);
+
+                // Delete Child Button
+                childDiv.innerHTML += `
+                    <div class="mt-8 border-t border-gray-200 pt-6">
+                        <button class="btn-danger w-full" onclick="confirmDeleteChild('${child.id}')">
+                            Eliminar Hijo
+                        </button>
+                    </div>
+                `;
+
+                childrenContentContainer.appendChild(childDiv);
+            });
+        }
+
+        /**
+         * Sets the active tab and displays the corresponding child's content.
+         * @param {string} childId - The ID of the child to activate.
+         */
+        function activateTab(childId) {
+            activeChildId = childId;
+            renderApp(); // Re-render to update active classes
+        }
+
+        /**
+         * Updates the visibility of the "Añadir Hijo" button.
+         */
+        function updateAddChildButtonVisibility() {
+            if (childrenData.length >= MAX_CHILDREN) {
+                addChildSection.classList.add('hidden'); // Hide if max children reached
+            } else {
+                addChildSection.classList.remove('hidden'); // Show otherwise
+            }
+        }
+
+        /**
+         * Handles adding a new child.
+         */
+        addChildButton.onclick = () => {
+            if (childrenData.length >= MAX_CHILDREN) {
+                showMessageBox('Límite Alcanzado', `No puedes añadir más de ${MAX_CHILDREN} hijos.`, [
+                    { text: 'Entendido', className: 'btn-primary' }
+                ]);
+                return;
+            }
+
+            showMessageBox('Añadir Nuevo Hijo', 'Introduce el nombre del nuevo hijo:', [
+                { text: 'Cancelar', className: 'btn-secondary' },
+                { text: 'Añadir', className: 'btn-primary', callback: () => {
+                    const name = document.getElementById('name-input-modal').value.trim(); // Get value from the modal input
+                    if (name) {
+                        const newChildId = `child-${nextChildId++}`;
+                        childrenData.push({
+                            id: newChildId,
+                            name: name,
+                            historial_comportamientos: {}
+                        });
+                        activeChildId = newChildId; // Make the new child active
+                        renderApp();
+                    } else {
+                        showMessageBox('Nombre Requerido', 'El nombre del hijo no puede estar vacío.', [
+                            { text: 'OK', className: 'btn-primary' }
+                        ]);
+                    }
+                }}
+            ]);
+
+            // Add an input field directly into the message box for name entry
+            const nameInputModal = document.createElement('input');
+            nameInputModal.type = 'text';
+            nameInputModal.id = 'name-input-modal';
+            nameInputModal.placeholder = 'Nombre del hijo';
+            nameInputModal.className = 'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500';
+            messageBoxMessage.insertAdjacentElement('afterend', nameInputModal); // Insert after message
+            nameInputModal.focus(); // Focus the input
+        };
+
+
+        /**
+         * Renames a child.
+         * @param {string} childId - The ID of the child to rename.
+         */
+        function renameChild(childId) {
+            const child = findChildById(childId);
+            if (!child) return;
+
+            const nameInput = document.getElementById(`name-input-${childId}`);
+            const newName = nameInput.value.trim();
+
+            if (newName && newName !== child.name) {
+                child.name = newName;
+                renderApp(); // Re-render to update the tab name
+                showMessageBox('Nombre Cambiado', `El nombre ha sido cambiado a "${newName}".`, [
+                    { text: 'OK', className: 'btn-primary' }
+                ]);
+            } else if (!newName) {
+                showMessageBox('Error', 'El nombre no puede estar vacío.', [
+                    { text: 'OK', className: 'btn-primary' }
+                ]);
+                nameInput.value = child.name; // Revert to old name
+            }
+        }
+
+        /**
+         * Adds a behavior entry for a child.
+         * @param {string} childId - The ID of the child.
+         */
+        function addBehavior(childId) {
+            const child = findChildById(childId);
+            if (!child) return;
+
+            const behaviorInput = document.getElementById(`behavior-input-${childId}`);
+            const behaviorText = behaviorInput.value.trim();
+
+            if (behaviorText) {
+                const today = getCurrentDate();
+                if (!child.historial_comportamientos[today]) {
+                    child.historial_comportamientos[today] = [];
+                }
+                child.historial_comportamientos[today].push(behaviorText);
+                behaviorInput.value = ''; // Clear input
+                renderApp(); // Re-render to show new behavior
+                showMessageBox('Comportamiento Añadido', 'El comportamiento ha sido registrado con éxito.', [
+                    { text: 'OK', className: 'btn-primary' }
+                ]);
+            } else {
+                showMessageBox('Entrada Vacía', 'Por favor, escribe un comportamiento antes de registrar.', [
+                    { text: 'OK', className: 'btn-primary' }
+                ]);
+            }
+        }
+
+        /**
+         * Confirms deletion of a child.
+         * @param {string} childId - The ID of the child to delete.
+         */
+        function confirmDeleteChild(childId) {
+            const child = findChildById(childId);
+            if (!child) return;
+
+            showMessageBox(
+                'Confirmar Eliminación',
+                `¿Estás seguro de que quieres eliminar a "${child.name}"? Esta acción no se puede deshacer.`,
+                [
+                    { text: 'Cancelar', className: 'btn-secondary' },
+                    { text: 'Eliminar', className: 'btn-danger', callback: () => deleteChild(childId) }
+                ]
+            );
+        }
+
+        /**
+         * Deletes a child from the data and re-renders.
+         * @param {string} childId - The ID of the child to delete.
+         */
+        function deleteChild(childId) {
+            const index = childrenData.findIndex(child => child.id === childId);
+            if (index !== -1) {
+                const deletedChildName = childrenData[index].name;
+                childrenData.splice(index, 1); // Remove the child
+
+                // Adjust activeChildId if the deleted child was active
+                if (activeChildId === childId) {
+                    if (childrenData.length > 0) {
+                        activeChildId = childrenData[0].id; // Activate the first remaining child
+                    } else {
+                        activeChildId = null; // No children left
+                    }
+                }
+                renderApp(); // Re-render to reflect changes
+                showMessageBox('Hijo Eliminado', `'${deletedChildName}' ha sido eliminado.`, [
+                    { text: 'OK', className: 'btn-primary' }
+                ]);
+            }
+        }
+
+        // Initial render when the page loads
+        window.onload = () => {
+            // Add some initial dummy children for demonstration
+            // addChild('Sofía');
+            // addChild('Mateo');
+            // If you want to start with no children, comment out the above lines.
+            renderApp();
+            if (childrenData.length > 0) {
+                activateTab(childrenData[0].id); // Activate the first child if any exist
+            }
+        };
+    </script>
+</body>
+</html>
